@@ -50,7 +50,7 @@ fn main() -> Result<(), Error> {
                     .map_err(|_| Error::Missing(name))?;
                 tournament.individuals[index].score = tournament.individuals[index]
                     .score
-                    .saturating_sub_signed(points);
+                    .saturating_add_signed(points);
             }
             Entrant::Team => {
                 let index: usize = tournament
@@ -58,7 +58,7 @@ fn main() -> Result<(), Error> {
                     .binary_search_by_key(&name.as_str(), Team::name)
                     .map_err(|_| Error::Missing(name))?;
                 tournament.teams[index].score =
-                    tournament.teams[index].score.saturating_sub_signed(points);
+                    tournament.teams[index].score.saturating_add_signed(points);
             }
         },
         Command::Initalize => {}
