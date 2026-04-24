@@ -1,0 +1,103 @@
+mod tournament;
+use clap::Parser;
+use core::fmt::{Debug, Formatter, Result as FmtResult};
+use ron::{Error as RonError, de::SpannedError};
+use std::fmt::Display;
+use std::io::{Error as IoError, ErrorKind as IoErrKind};
+use thiserror::Error;
+
+use crate::tournament::{Entrant, Event, Individaul, Team, Tournament};
+
+#[derive(Parser)]
+pub enum Command {
+    Reward {
+        entrant: Entrant,
+        name: String,
+        points: i32,
+    },
+    Initalize,
+    Display {
+        name: String,
+    },
+    Rank,
+}
+
+fn main() -> Result<(), Error> {
+    let command = Command::parse();
+    let mut tournament = Tournament::from_file().or_else(|err| match err {
+        Error::Io(err) if err.kind() == IoErrKind::NotFound => Ok(Tournament::default()),
+        _ => Err(err),
+    })?;
+    if tournament.individuals.len() > 20 {
+        return Err(Error::MaxIndividuals);
+    }
+    tournament.events.sort_by(Event::name_ord);
+    tournament.events.dedup_by(Event::name_eq);
+    tournament.individuals.sort_by(Individaul::name_ord);
+    tournament.individuals.dedup_by(Individaul::name_eq);
+    tournament.teams.sort_by(Team::name_ord);
+    tournament.teams.dedup_by(Team::name_eq);
+    match command {
+        Command::Reward {
+            entrant,
+            name,
+            points,
+        } => match entrant {
+            Entrant::Individual => {
+                let index = tournament
+                    .individuals
+                    .binary_search_by_key(&name.as_str(), Individaul::name)
+                    .map_err(|_| Error::Missing(name))?;
+                tournament.individuals[index].score = tournament.individuals[index]
+                    .score
+                    .saturating_sub_signed(points);
+            }
+            Entrant::Team => {
+                let index: usize = tournament
+                    .teams
+                    .binary_search_by_key(&name.as_str(), Team::name)
+                    .map_err(|_| Error::Missing(name))?;
+                tournament.teams[index].score =
+                    tournament.teams[index].score.saturating_sub_signed(points);
+            }
+        },
+        Command::Initalize => {}
+        Command::Display { name } => {
+            let index: usize = tournament
+                .events
+                .binary_search_by_key(&name.as_str(), Event::name)
+                .map_err(|_| Error::Missing(name))?;
+            println!("{:?}", tournament.events[index]);
+        }
+        Command::Rank => {
+            let mut teams = tournament.teams.clone();
+            teams.sort_by_key(Team::score);
+            let mut individuals = tournament.individuals.clone();
+            individuals.sort_by_key(Individaul::score);
+            println!(
+                "Individuals by ranking of scores {:?}\nTeams by ranking of scores {:?}\n",
+                individuals, teams
+            )
+        }
+    }
+    tournament.to_file()
+}
+
+#[derive(Error)]
+pub enum Error {
+    #[error("Failed to read file {0}")]
+    Io(#[from] IoError),
+    #[error("Failed to read file {0}")]
+    Ron(#[from] RonError),
+    #[error("Failed to deserialize file {0}")]
+    Spanned(#[from] SpannedError),
+    #[error("Failed to find {0}")]
+    Missing(String),
+    #[error("Too many individuals")]
+    MaxIndividuals,
+}
+impl Debug for Error {
+    fn fmt(&self, f: &mut Formatter) -> FmtResult {
+        Display::fmt(self, f)
+    }
+}
