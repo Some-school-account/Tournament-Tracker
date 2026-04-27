@@ -1,8 +1,6 @@
 use clap::ValueEnum;
-use std::{
-    cmp::Ordering,
-    fs::{read_to_string, write},
-};
+use std::cmp::Ordering;
+use std::fs::{read_to_string, write};
 
 use crate::Error;
 use ron::{
@@ -13,7 +11,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize)]
 pub struct Tournament {
     pub events: Vec<Event>,
-    pub individuals: Vec<Individaul>,
+    pub individuals: Vec<Individual>,
     pub teams: Vec<Team>,
 }
 impl Tournament {
@@ -36,16 +34,16 @@ impl Default for Tournament {
                     name: "event_1".into(),
                     entrant: Entrant::Individual,
                     challenge: "sporting".into(),
-                    participtants: vec!["individual".into()],
+                    participants: vec!["individual".into()],
                 },
                 Event {
                     name: "event_2".into(),
                     entrant: Entrant::Individual,
                     challenge: "academic".into(),
-                    participtants: vec!["team".into()],
+                    participants: vec!["team".into()],
                 },
             ],
-            individuals: vec![Individaul {
+            individuals: vec![Individual {
                 name: "individual".into(),
                 score: 0,
             }],
@@ -61,7 +59,7 @@ impl Default for Tournament {
 pub struct Event {
     pub name: String,
     pub entrant: Entrant,
-    pub participtants: Vec<String>,
+    pub participants: Vec<String>,
     pub challenge: String,
 }
 impl Event {
@@ -82,13 +80,12 @@ pub enum Entrant {
     Individual,
     Team,
 }
-
 #[derive(Serialize, Deserialize, Default, Clone, Debug)]
-pub struct Individaul {
+pub struct Individual {
     pub name: String,
     pub score: u32,
 }
-impl Individaul {
+impl Individual {
     pub fn name_ord(&self, other: &Self) -> Ordering {
         self.name.cmp(&other.name)
     }

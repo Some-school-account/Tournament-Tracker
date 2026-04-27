@@ -6,7 +6,7 @@ use std::fmt::Display;
 use std::io::{Error as IoError, ErrorKind as IoErrKind};
 use thiserror::Error;
 
-use crate::tournament::{Entrant, Event, Individaul, Team, Tournament};
+use crate::tournament::{Entrant, Event, Individual, Team, Tournament};
 
 #[derive(Parser)]
 pub enum Command {
@@ -33,8 +33,8 @@ fn main() -> Result<(), Error> {
     }
     tournament.events.sort_by(Event::name_ord);
     tournament.events.dedup_by(Event::name_eq);
-    tournament.individuals.sort_by(Individaul::name_ord);
-    tournament.individuals.dedup_by(Individaul::name_eq);
+    tournament.individuals.sort_by(Individual::name_ord);
+    tournament.individuals.dedup_by(Individual::name_eq);
     tournament.teams.sort_by(Team::name_ord);
     tournament.teams.dedup_by(Team::name_eq);
     match command {
@@ -46,7 +46,7 @@ fn main() -> Result<(), Error> {
             Entrant::Individual => {
                 let index = tournament
                     .individuals
-                    .binary_search_by_key(&name.as_str(), Individaul::name)
+                    .binary_search_by_key(&name.as_str(), Individual::name)
                     .map_err(|_| Error::Missing(name))?;
                 tournament.individuals[index].score = tournament.individuals[index]
                     .score
@@ -59,6 +59,7 @@ fn main() -> Result<(), Error> {
                     .map_err(|_| Error::Missing(name))?;
                 tournament.teams[index].score =
                     tournament.teams[index].score.saturating_add_signed(points);
+                println!("{}", points)
             }
         },
         Command::Initalize => {}
@@ -73,7 +74,7 @@ fn main() -> Result<(), Error> {
             let mut teams = tournament.teams.clone();
             teams.sort_by_key(Team::score);
             let mut individuals = tournament.individuals.clone();
-            individuals.sort_by_key(Individaul::score);
+            individuals.sort_by_key(Individual::score);
             println!(
                 "Individuals by ranking of scores {:?}\nTeams by ranking of scores {:?}\n",
                 individuals, teams
