@@ -1,6 +1,7 @@
 mod tournament;
 use clap::Parser;
 use core::fmt::{Debug, Formatter, Result as FmtResult};
+use ron::ser::{PrettyConfig, to_string_pretty};
 use ron::{Error as RonError, de::SpannedError};
 use std::fmt::Display;
 use std::io::{Error as IoError, ErrorKind as IoErrKind};
@@ -19,7 +20,9 @@ pub enum Command {
     Display {
         name: String,
     },
-    Rank,
+    Rank {
+        entrant: Entrant,
+    },
 }
 
 fn main() -> Result<(), Error> {
@@ -68,18 +71,23 @@ fn main() -> Result<(), Error> {
                 .events
                 .binary_search_by_key(&name.as_str(), Event::name)
                 .map_err(|_| Error::Missing(name))?;
-            println!("{:?}", tournament.events[index]);
+            let event = to_string_pretty(&tournament.events[index], PrettyConfig::new())?;
+            println!("{}", event);
         }
-        Command::Rank => {
-            let mut teams = tournament.teams.clone();
-            teams.sort_by_key(Team::score);
-            let mut individuals = tournament.individuals.clone();
-            individuals.sort_by_key(Individual::score);
-            println!(
-                "Individuals by ranking of scores {:?}\nTeams by ranking of scores {:?}\n",
-                individuals, teams
-            )
-        }
+        Command::Rank { entrant } => match entrant {
+            Entrant::Individual => {
+                let mut individuals = tournament.individuals.clone();
+                individuals.sort_by_key(Individual::score);
+                let individuals = to_string_pretty(&individuals, PrettyConfig::new())?;
+                println!("Individuals by ranking of scores {}", individuals)
+            }
+            Entrant::Team => {
+                let mut teams = tournament.teams.clone();
+                teams.sort_by_key(Team::score);
+                let teams = to_string_pretty(&teams, PrettyConfig::new())?;
+                println!("Teams by ranking of scores {}", teams)
+            }
+        },
     }
     tournament.to_file()
 }
